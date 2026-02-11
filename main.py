@@ -10,7 +10,9 @@ import datetime
 
 app = FastAPI()
 
+# Serve static frontend
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 @app.get("/app")
 def serve_frontend():
@@ -74,11 +76,14 @@ def ask_question(question: Question):
             (df["tentative_close_date"] >= start_date) &
             (df["tentative_close_date"] <= end_date)
         ]
+
+    # ---------------------------
     # If no data after filtering
+    # ---------------------------
     if df.empty:
-    	return {
-        "message": "No deals match your query filters."
-    	}
+        return {
+            "message": "No deals match your query filters."
+        }
 
     # ---------------------------
     # Advanced Business Metrics
@@ -96,7 +101,6 @@ def ask_question(question: Question):
     won_count = won_df.shape[0]
 
     win_rate = (won_count / total_deals * 100) if total_deals > 0 else 0
-
     on_hold_count = on_hold_df.shape[0]
 
     summary = {
@@ -115,3 +119,11 @@ def ask_question(question: Question):
         "filtered_summary": summary,
         "executive_insight": insight
     }
+
+
+# ---------------------------
+# Required for Render
+# ---------------------------
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=10000)
