@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Skylark BI Agent</title>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #00ffcc;
+            font-family: "Courier New", monospace;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #00ffcc;
+            margin-bottom: 30px;
+        }
+
+        input {
+            width: 65%;
+            padding: 12px;
+            background: #161b22;
+            border: 1px solid #00ffcc;
+            color: #00ffcc;
+            outline: none;
+        }
+
+        button {
+            padding: 12px 20px;
+            background: #00ffcc;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 10px;
+            transition: 0.2s;
+        }
+
+        button:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+
+        button:hover:not(:disabled) {
+            background: #00e6b8;
+        }
+
+        .card {
+            background: #161b22;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid #00ffcc;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .label {
+            color: #7ee787;
+        }
+
+        .loader {
+            color: #00ffcc;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0.4; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<h1>⚡ Skylark Monday BI Agent</h1>
+
+<input id="queryInput" placeholder="Ask a business question..." />
+<button id="runBtn" onclick="askQuestion()">Run</button>
+
+<div id="metrics" class="card" style="display:none;"></div>
+<div id="insight" class="card" style="display:none;"></div>
+
+<script>
+
+document.getElementById("queryInput").addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        askQuestion();
+    }
+});
+
+async function askQuestion() {
+
+    const query = document.getElementById("queryInput").value.trim();
+    const runBtn = document.getElementById("runBtn");
+    const metricsDiv = document.getElementById("metrics");
+    const insightDiv = document.getElementById("insight");
+
+    if (!query) return;
+
+    // 🔥 Loading State
+    runBtn.innerText = "Running...";
+    runBtn.disabled = true;
+
+    metricsDiv.style.display = "block";
+    metricsDiv.innerHTML = `<div class="loader">⚡ Running BI Engine...</div>`;
+    insightDiv.style.display = "none";
+
+    try {
+
+        const response = await fetch("/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query })
+        });
+
+        const data = await response.json();
+
+        if (data.message) {
+            metricsDiv.innerHTML = data.message;
+            return;
+        }
+
+        const summary = data.filtered_summary;
+
+        metricsDiv.innerHTML = `
+            <div><span class="label">Total Pipeline:</span> ${summary.total_pipeline_value}</div>
+            <div><span class="label">Won Value:</span> ${summary.won_value}</div>
+            <div><span class="label">Lost Value:</span> ${summary.lost_value}</div>
+            <div><span class="label">Win Rate (%):</span> ${summary.win_rate_percent}</div>
+            <div><span class="label">On Hold Deals:</span> ${summary.on_hold_deals}</div>
+        `;
+
+        insightDiv.style.display = "block";
+        insightDiv.innerHTML =
+            "<span class='label'>Executive Insight:</span><br><br>" +
+            data.executive_insight.replace(/\n/g, "<br>");
+
+    } catch (error) {
+        metricsDiv.innerHTML = "⚠ Error running query.";
+    }
+
+    // 🔥 Reset Button
+    runBtn.innerText = "Run";
+    runBtn.disabled = false;
+}
+
+</script>
+
+</body>
+</html>
